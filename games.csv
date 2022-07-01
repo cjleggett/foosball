@@ -14,6 +14,7 @@
 "KevinLuo","","","OstapStefak","","","7","10"
 "ConnorLeggett","","","OstapStefak","","","3","5"
 "ConnorLeggett","AlyssaChen","","KevinLuo","OstapStefak","","5","10"
+<<<<<<< HEAD
 "ConnorLeggett","KevinLuo","","AlyssaChen","OstapStefak","","10","8"
 "ConnorLeggett","ChrisOng","","KevinLuo","IvanDimitrov","","8","10"
 "ConnorLeggett","","","KevinLuo","","","1","1"
@@ -27,3 +28,6 @@
 "OstapStefak","IvanDimitrov","","KevinLuo","ConnorLeggett","","10","6"
 "ConnorLeggett","IvanDimitrov","","OstapStefak","KevinLuo","","9","10"
 "ConnorLeggett","OstapStefak","","IvanDimitrov","KevinLuo","","6","10"
+=======
+"ConnorLeggett","KevinLuo","","AlyssaChen","OstapStefak","","10","8"
+>>>>>>> b0e0b4f4b0ab7262967fcc3090b7b3f836d71979

@@ -7,3 +7,6 @@
 
 - Least Squares:
 - ELO-Based:
+
+### Elo Ratings
+![Elo Ratings Evolution](elo_graphs/elo.gif)

@@ -3,12 +3,16 @@ from numpy import linalg
 import requests
 import csv
 
+START_ELO = 1000
+
+
 def pull_table():
     key = "1ijei0ZhIdPiY_TazfB2JZAAoNi3CWowgPquQuLv3oSU"
     sheet_name = "games"
     csv_url = f"https://docs.google.com/spreadsheets/d/{key}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     result = requests.get(url=csv_url)
     open("games.csv", "wb").write(result.content)
+
 
 def read_info():
     def extract_players(game):
@@ -34,9 +38,11 @@ def read_info():
 
     return games, players, n_players, player_numbers
 
+
 def get_game_teams(game):
     return [[player for id, player in game.items() if len(player.strip()) > 0
                 and id.startswith(f"team_{i}_player") ] for i in range(1, 2 + 1)]
+
 
 def rank_least_squares(games, players, n_players, player_numbers):
     # Make array of games
@@ -64,50 +70,62 @@ def rank_least_squares(games, players, n_players, player_numbers):
     return player_scores
 
 
+def calc_expected_score(team_1, team_2, elo_scores):
+    team_1_rating = np.mean([elo_scores[p] for p in team_1])
+    team_2_rating = np.mean([elo_scores[p] for p in team_2])
+    e_team_1 = 1 / (1 + 10 ** ((team_2_rating - team_1_rating) / 500))
+    return e_team_1
+
+
+def calc_true_score(score_1, score_2):
+    return score_1 / (score_1 + score_2)
+
+
+def calc_adjusted_rating(true_score, expected_score, old_rating, max_score):
+    return old_rating + 10 * max_score * (true_score - expected_score)
+
+
+def rate_game(game, teams, old_elo_scores, game_id):
+    if len(teams[0]) != len(teams[1]):
+        print(f"Can't score game {game_id} due to imbalanced teams!")
+        return
+
+    expected_score_1 = calc_expected_score(
+        teams[0],
+        teams[1],
+        old_elo_scores
+    )
+
+    true_score = calc_true_score(
+        int(game["team_1_score"]),
+        int(game["team_2_score"])
+    )
+    new_elo_scores = dict({})
+    for team_id in range(1, 2 + 1):
+        for player_id in range(1, len(teams[0]) + 1):
+            new_elo_scores[game[f"team_{team_id}_player_{player_id}"]] = calc_adjusted_rating(
+                (team_id - 1) + (3 - team_id * 2) * true_score,
+                (team_id - 1) + (3 - team_id * 2) * expected_score_1,
+                # ^ 0 + score if team 1
+                #   1 - score if team 2
+                old_elo_scores[teams[team_id - 1][player_id - 1]],
+                max(int(game["team_1_score"]), int(game["team_2_score"]))
+            )
+
+    return new_elo_scores
+
+
 def rank_elo(players, games):
-    def calc_expected_score(team_1, team_2):
-        team_1_rating = np.mean([elo_scores[p] for p in team_1])
-        team_2_rating = np.mean([elo_scores[p] for p in team_2])
-        e_team_1 = 1 / (1 + 10 ** ((team_2_rating - team_1_rating) / 500))
-        return e_team_1
-        
-    def calc_true_score(score_1, score_2):
-        return score_1 / (score_1 + score_2)
-
-    def calc_adjusted_rating(true_score, expected_score, old_rating):
-        return old_rating + 100 * (true_score - expected_score)
-
-    elo_scores = {player: 1000 for player in players}
-
+    elo_scores = {player: START_ELO for player in players}
+    elo_history = dict({})
     for row, game in enumerate(games):
-
         teams = get_game_teams(game)
+        adjusted_elo_scores = rate_game(game, teams, elo_scores, row)
+        elo_scores.update(adjusted_elo_scores)
+        elo_history[row] = elo_scores.copy()
 
-        if len(teams[0]) != len(teams[1]):
-            print(f"Can't score game {row} due to imbalanced teams!")
-            continue
+    return elo_scores, elo_history
 
-        expected_score_1 = calc_expected_score(
-            teams[0],
-            teams[1],
-        )
-
-        true_score = calc_true_score(
-            int(game["team_1_score"]),
-            int(game["team_2_score"])
-        )
-
-        for team_id in range(1, 2 + 1):
-            for player_id in range(1, len(teams[0]) + 1):
-                elo_scores[game[f"team_{team_id}_player_{player_id}"]] = calc_adjusted_rating(
-                    (team_id - 1) + (3 - team_id * 2) * true_score,
-                    (team_id - 1) + (3 - team_id * 2) * expected_score_1,
-                    # ^ 0 + score if team 1
-                    #   1 - score if team 2
-                    elo_scores[teams[team_id - 1][player_id - 1]]
-                )
-
-    return elo_scores
 
 def print_rankings(ls_scores, elo_scores, players):
     print("Least-Squares Ranking:")
@@ -119,10 +137,3 @@ def print_rankings(ls_scores, elo_scores, players):
     players.sort(key=lambda p: elo_scores[p], reverse=True)
     for i, player in enumerate(players):
         print(f"{i + 1}: {player} ({elo_scores[player]:.3f})")
-
-if __name__ == "__main__":
-    pull_table()
-    games, players, n_players, player_numbers = read_info()
-    ls_scores = rank_least_squares(games, players, n_players, player_numbers)
-    elo_scores = rank_elo(players, games)
-    print_rankings(ls_scores, elo_scores, players)
