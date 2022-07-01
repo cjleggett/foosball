@@ -82,7 +82,7 @@ def calc_true_score(score_1, score_2):
 
 
 def calc_adjusted_rating(true_score, expected_score, old_rating, max_score):
-    return old_rating + 10 * max_score * (true_score - expected_score)
+    return old_rating + .25 + 10 * max_score * (true_score - expected_score)
 
 
 def rate_game(game, teams, old_elo_scores, game_id):
