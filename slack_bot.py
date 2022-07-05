@@ -6,7 +6,7 @@ import datetime
 from rank_players import pull_table, read_info, rank_elo, rank_least_squares
 from plotter import anim_elo_history
 
-IMG_LINK = "https://github.com/{your_fork}/blob/slack-bot-graphs/elo_graphs/elo.gif".format(
+IMG_LINK = "https://raw.githubusercontent.com/{your_fork}/blob/slack-bot-graphs/elo_graphs/elo.gif".format(
     your_fork = "IvanDimitrovQC/foosball"
 )
 
