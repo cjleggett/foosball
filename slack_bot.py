@@ -26,10 +26,18 @@ if __name__ == '__main__':
     ls_scores = rank_least_squares(games, players, n_players, player_numbers)
     elo_scores, elo_history = rank_elo(players, games)
 
+    print("Scores are calculated.")
+
     anim_elo_history(players, games, elo_history)
 
-    output = subprocess.check_output('sh push_to_git.sh %s %s' % (ELO_GRAPH_DIR /"elo.gif", current_datetime), shell=True)
+    output = subprocess.check_output(
+        'sh push_to_git.sh %s %s' % (ELO_GRAPH_DIR /"elo.gif", current_datetime),
+        shell=True
+    )
+
     print("Pushed elo history.")
 
     webhook_url = get_url()
     r = requests.post(webhook_url, json={"img_link": IMG_LINK})
+
+    print("Called webhook.")
