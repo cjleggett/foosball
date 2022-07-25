@@ -94,7 +94,6 @@ class RankingSystem:
                 delta = self.elo_gain_coef * max(match.points) * (true - pred)
                 player_delta = delta * self.player_team_weight(player, match.teams[t])
                 deltas[player] = self.free_elo_gain + player_delta
-        print(match, deltas)
         return deltas
 
     def score_match(self, match: Match) -> RankingSystem:
