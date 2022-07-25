@@ -1,3 +1,4 @@
 games.csv
 __pycache__
 webhook_url.txt
+slack_bot_tokens.json

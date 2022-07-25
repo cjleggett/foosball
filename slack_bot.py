@@ -1,43 +1,58 @@
-import requests
-from util import ROOT_DIR, ELO_GRAPH_DIR
-import subprocess
-import datetime
+import re
+import json
+from util import ROOT_DIR
 
-from rank_players import pull_table, read_info, rank_elo, rank_least_squares
-from plotter import anim_elo_history
-
-IMG_LINK = "https://raw.githubusercontent.com/{your_fork}/blob/slack-bot-graphs/elo_graphs/elo.gif".format(
-    your_fork = "IvanDimitrovQC/foosball"
-)
+from slack_bolt import App
+from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 
-def get_url():
-    with open(ROOT_DIR / 'webhook_url.txt', 'r') as wh:
-        url = wh.read().strip()
-    return url
+TOKEN_FILE = ROOT_DIR / "slack_bot_tokens.json"
 
 
-if __name__ == '__main__':
-    current_datetime = datetime.datetime.now()
+def load_tokens():
+    with open(TOKEN_FILE) as f:
+        data = json.load(f)
+        return data
 
-    pull_table()
 
-    games, players, n_players, player_numbers = read_info()
-    ls_scores = rank_least_squares(games, players, n_players, player_numbers)
-    elo_scores, elo_history = rank_elo(players, games)
+TOKENS = load_tokens()
+app = App(token=TOKENS["bot-token"])
 
-    print("Scores are calculated.")
+ID_TO_NAME = {
+    "U0146GZMZBK": "DamianBarabonkov",
+    "U0151DVTK41": "IvanDimitrov",
+}
 
-    anim_elo_history(players, games, elo_history)
 
-    output = subprocess.check_output(
-        'sh push_to_git.sh %s %s' % (ELO_GRAPH_DIR /"elo.gif", current_datetime),
-        shell=True
-    )
+def parse_command(body):
+    text = body['event']['text']
+    command_r = '!\w+'
+    search = re.search(f'{command_r}', text)
+    if search:
+        command = search.group(0)
+        command_end_pos = search.span(0)[1]
+        if command == '!g':
+            trimmed_text = text[command_end_pos:]
+            parse_score(trimmed_text)
 
-    print("Pushed elo history.")
 
-    webhook_url = get_url()
-    r = requests.post(webhook_url, json={"img_link": IMG_LINK})
+def parse_score(text):
+    user_id = '<@\w+>'
+    team = f'((?:{user_id}\s*)+)'
+    search = re.search(f'^\s*{team}\s*(\d+)\s*[-|:]\s*(\d+)\s*{team}$', text)
+    if search:
+        (team1, score1) = search.group(1), search.group(2)
+        (team2, score2) = search.group(4), search.group(3)
+        team1 = [ID_TO_NAME[tm] for tm in re.findall('<@(\w+)>', team1)]
+        team2 = [ID_TO_NAME[tm] for tm in re.findall('<@(\w+)>', team2)]
+        print("{t1} {s1} - {s2} {t2}".format(t1=team1, s1=score1, s2=score2, t2=team2))
 
-    print("Called webhook.")
+
+@app.event("app_mention")
+def event_test(say, body):
+    parse_command(body)
+
+
+if __name__ == "__main__":
+    handler = SocketModeHandler(app, TOKENS['app-token'])
+    handler.start()
