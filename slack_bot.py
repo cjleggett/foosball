@@ -4,6 +4,7 @@ from util import ROOT_DIR
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+from bq_util import write_rows
 
 
 TOKEN_FILE = ROOT_DIR / "slack_bot_tokens.json"
@@ -46,6 +47,7 @@ def parse_score(text):
         team1 = [ID_TO_NAME[tm] for tm in re.findall('<@(\w+)>', team1)]
         team2 = [ID_TO_NAME[tm] for tm in re.findall('<@(\w+)>', team2)]
         print("{t1} {s1} - {s2} {t2}".format(t1=team1, s1=score1, s2=score2, t2=team2))
+        write_rows(int(score1), str(team1), int(score2), str(team2))
 
 
 @app.event("app_mention")
